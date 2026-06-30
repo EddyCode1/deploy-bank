@@ -1,0 +1,149 @@
+using System;
+using AuthServiceBanco.Application.DTOs;
+using AuthServiceBanco.Application.DTOs.Email;
+using AuthServiceBanco.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace AuthServiceBanco.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class AuthController(IAuthService authService) : ControllerBase
+{
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ActionResult<object>> GetProfile()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+        if (userIdClaim == null || string.IsNullOrEmpty(userIdClaim.Value))
+        {
+            return Unauthorized();
+        }
+
+        var user = await authService.GetUserByIdAsync(userIdClaim.Value);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        return Ok(new
+        {
+            success = true,
+            message = "Perfil obtenido exitosamente",
+            data = user
+        });
+    }
+    
+    [HttpPost("register")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<RegisterResponseDto>> Register([FromBody] RegisterDto registerDto)
+    {
+        var result = await authService.RegisterAsync(registerDto);
+        return StatusCode(201, result);
+    }
+
+    [HttpPost("login")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
+    {
+        var result = await authService.LoginAsync(loginDto);
+        return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenDto refreshTokenDto)
+    {
+        try
+        {
+            var result = await authService.RefreshTokenAsync(refreshTokenDto);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("verify-email")]
+    [EnableRateLimiting("ApiPolicy")]
+    public async Task<ActionResult<EmailResponseDto>> VerifyEmail([FromBody] VerifyEmailDto verifyEmailDto)
+    {
+        var result = await authService.VerifyEmailAsync(verifyEmailDto);
+        return Ok(result);
+        
+    }
+
+    [HttpPost("resend-verification")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<EmailResponseDto>> ResendVerification([FromBody] ResendVerificationDto resendDto)
+    {
+        var result = await authService.ResendVerificationEmailAsync(resendDto);
+
+        // Return appropriate status code based on result
+        if (!result.Success)
+        {
+            if (result.Message.Contains("no encontrado", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(result);
+            }
+            if (result.Message.Contains("ya ha sido verificado", StringComparison.OrdinalIgnoreCase) ||
+                result.Message.Contains("ya verificado", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(result);
+            }
+            // Email sending failed - Service Unavailable
+            return StatusCode(503, result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<EmailResponseDto>> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+    {
+        var result = await authService.ForgotPasswordAsync(forgotPasswordDto);
+
+        // ForgotPassword always returns success for security (even if user not found)
+        // But if email sending fails, return 503
+        if (!result.Success)
+        {
+            return StatusCode(503, result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult<EmailResponseDto>> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+    {
+        var result = await authService.ResetPasswordAsync(resetPasswordDto);
+        return Ok(result);
+    }
+
+
+    [HttpGet("login-history")]
+    [Authorize]
+    public async Task<IActionResult> GetLoginHistory()
+    {
+        var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+            ?? User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { success = false, message = "Usuario no autenticado" });
+        }
+
+        var history = await authService.GetLoginHistoryAsync(userId);
+
+        return Ok(new
+        {
+            success = true,
+            data = history
+        });
+    }
+
+}

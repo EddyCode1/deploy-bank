@@ -1,0 +1,130 @@
+/**
+ * Datos estáticos para el módulo de consulta financiera
+ */
+
+export const CREDIT_CARDS = [
+  {
+    id: 'card-001',
+    name: 'Crédito Platinum',
+    type: 'Visa',
+    currency: 'GTQ',
+    status: 'Activa',
+    authorizedLimit: 120000,
+    balanceDue: 38540.75,
+    availableBalance: 81459.25,
+    minimumPayment: 1540.0,
+    fullPayment: 38540.75,
+    cutOffDate: '2026-06-15',
+    paymentDueDate: '2026-07-05',
+  },
+  {
+    id: 'card-002',
+    name: 'Gold Cashback',
+    type: 'Mastercard',
+    currency: 'USD',
+    status: 'Activa',
+    authorizedLimit: 18000,
+    balanceDue: 5980.4,
+    availableBalance: 12019.6,
+    minimumPayment: 260.0,
+    fullPayment: 5980.4,
+    cutOffDate: '2026-06-18',
+    paymentDueDate: '2026-07-08',
+  },
+];
+
+export const LOANS = [
+  {
+    id: 'loan-001',
+    name: 'Préstamo Vehicular',
+    type: 'Crédito Automotriz',
+    status: 'Activo',
+    principalAmount: 180000,
+    outstandingBalance: 134200,
+    interestRate: 11.75,
+    monthlyInstallment: 6220.5,
+    nextPaymentDate: '2026-06-20',
+    termRemaining: '24 meses',
+  },
+  {
+    id: 'loan-002',
+    name: 'Préstamo Personal',
+    type: 'Consumo',
+    status: 'Activo',
+    principalAmount: 42000,
+    outstandingBalance: 13880,
+    interestRate: 13.2,
+    monthlyInstallment: 2250.0,
+    nextPaymentDate: '2026-06-25',
+    termRemaining: '10 meses',
+  },
+];
+
+export const TRANSACTION_FILTER_OPTIONS = {
+  types: ['Todos', 'Consumo', 'Pago', 'Reversión', 'Interés', 'Cuota'],
+  currencies: ['Todos', 'GTQ', 'USD'],
+  statuses: ['Todos', 'Completado', 'Pendiente', 'Rechazado'],
+};
+
+export const FINANCIAL_HISTORY = [
+  {
+    id: 'hist-001',
+    date: '2026-05-14',
+    description: 'Pago de factura tarjeta Platinum',
+    type: 'Pago',
+    amount: -1540.0,
+    currency: 'GTQ',
+    status: 'Completado',
+    category: 'Tarjeta de crédito',
+  },
+  {
+    id: 'hist-002',
+    date: '2026-05-13',
+    description: 'Compra internacional en línea',
+    type: 'Consumo',
+    amount: 3200.9,
+    currency: 'USD',
+    status: 'Completado',
+    category: 'Tarjeta de crédito',
+  },
+  {
+    id: 'hist-003',
+    date: '2026-05-12',
+    description: 'Pago mensual préstamo vehicular',
+    type: 'Cuota',
+    amount: -6220.5,
+    currency: 'GTQ',
+    status: 'Completado',
+    category: 'Préstamo',
+  },
+  {
+    id: 'hist-004',
+    date: '2026-05-10',
+    description: 'Intereses cargo préstamo personal',
+    type: 'Interés',
+    amount: 320.0,
+    currency: 'GTQ',
+    status: 'Pendiente',
+    category: 'Préstamo',
+  },
+  {
+    id: 'hist-005',
+    date: '2026-05-08',
+    description: 'Reversión pago tarjeta Gold Cashback',
+    type: 'Reversión',
+    amount: -420.0,
+    currency: 'USD',
+    status: 'Completado',
+    category: 'Tarjeta de crédito',
+  },
+  {
+    id: 'hist-006',
+    date: '2026-05-05',
+    description: 'Consumo en restaurante',
+    type: 'Consumo',
+    amount: 320.75,
+    currency: 'GTQ',
+    status: 'Completado',
+    category: 'Tarjeta de crédito',
+  },
+];

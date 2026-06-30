@@ -1,0 +1,21 @@
+
+using AuthServiceBanco.Domain.Entities;
+
+namespace AuthServiceBanco.Domain.Interfaces;
+
+public interface IUserRepository
+{
+    Task<User> CreateAsync(User user, UserProfile? profile = null, UserEmail? email = null, UserRole? userRole = null);
+    Task<User> GetByIdAsync(string id);
+    Task<User?> GetByEmailAsync(string email);
+    Task<User?> GetByUsernameAsync(string username);
+    Task<User?> GetByEmailVerificationTokenAsync(string token);
+    Task<User?> GetByPasswordResetTokenAsync(string token);
+    Task<bool> ExistsByEmailAsync(string email);
+    Task<bool> ExistsByUsernameAsync(string username);
+    Task<bool> ExistsByDpiAsync(string dpi);
+    Task<User> UpdateAsync(User user);
+    Task<bool> DeleteAsync(string id);
+    Task UpdateUserRoleAsync(string userId, string roleId);
+    Task<(IReadOnlyList<User> Users, int TotalCount)> GetAllPagedAsync(int page, int pageSize, string? searchTerm = null, string? role = null);
+}
