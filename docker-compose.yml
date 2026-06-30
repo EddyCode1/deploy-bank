@@ -52,7 +52,8 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:5025
-      ASPNETCORE_ENVIRONMENT: Production
+      # Development permite CORS desde cualquier localhost (p. ej. Expo en :8081)
+      ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=SistemaBancario;Username=root;Password=admin"
     ports:
       - "5025:5025"
