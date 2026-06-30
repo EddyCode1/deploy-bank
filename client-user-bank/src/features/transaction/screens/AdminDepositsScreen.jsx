@@ -36,6 +36,128 @@ export default function AdminDepositsScreen() {
     })}`;
   };
 
+  const formatDuration = (value) => {
+    const totalSeconds = Math.max(0, Number(value) || 0);
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  };
+
+  function PendingDepositCard({
+    deposit,
+    isBusy,
+    isEditing,
+    editingAmount,
+    onStartEdit,
+    onCancelEdit,
+    onSaveEdit,
+    onRevert,
+    onUpdateAmount,
+  }) {
+    const [seconds, setSeconds] = useState(() => Number(deposit.secondsRemaining) || 0);
+
+    useEffect(() => {
+      setSeconds(Number(deposit.secondsRemaining) || 0);
+    }, [deposit.secondsRemaining]);
+
+    useEffect(() => {
+      if (seconds <= 0) return undefined;
+      const interval = setInterval(() => {
+        setSeconds((current) => Math.max(current - 1, 0));
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [seconds]);
+
+    const expired = seconds <= 0;
+    const canRevert = deposit.canRevert && !expired;
+
+    return (
+      <View key={deposit.id} style={styles.depositCard}>
+        <View style={styles.cardRow}>
+          <Text style={styles.idText}>ID: ...{String(deposit.id).slice(-8).toUpperCase()}</Text>
+          <Text style={styles.accountText}>No. {deposit.accountNumber}</Text>
+        </View>
+
+        <View style={styles.cardRow}>
+          {isEditing ? (
+            <View style={styles.editInputContainer}>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={editingAmount}
+                onChangeText={onUpdateAmount}
+                autoFocus
+              />
+            </View>
+          ) : (
+            <Text style={styles.amountText}>{formatMoney(deposit.amount, deposit.currencyTo || 'GTQ')}</Text>
+          )}
+
+          <View style={[styles.badge, expired ? styles.expiredBadge : styles.timerBadge]}>
+            <Text style={[styles.badgeText, expired ? styles.expiredBadgeText : styles.timerBadgeText]}>
+              {expired ? 'Tiempo expirado' : formatDuration(seconds)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardRow}>
+          <Text style={styles.conversionText}>
+            Ruta: {deposit.currencyFrom} ➔ {deposit.currencyTo}
+          </Text>
+          <Text style={styles.dateText}>{formatDate(deposit.createdAt)}</Text>
+        </View>
+
+        <View style={styles.actionsContainer}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                style={[styles.btnAction, { borderColor: colors.border }]}
+                onPress={onCancelEdit}
+                disabled={isBusy}
+              >
+                <Text style={[styles.btnActionText, { color: colors.text }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnAction, { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={() => onSaveEdit(deposit)}
+                disabled={isBusy}
+              >
+                {isBusy ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={[styles.btnActionText, { color: '#FFF' }]}>Guardar</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.btnAction, { borderColor: colors.primary }]}
+                onPress={() => onStartEdit(deposit)}
+                disabled={isBusy}
+              >
+                <Text style={[styles.btnActionText, { color: colors.primary }]}>Editar monto</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.btnAction,
+                  {
+                    borderColor: canRevert ? colors.danger : colors.border,
+                    opacity: canRevert ? 1 : 0.4,
+                  }
+                ]}
+                onPress={() => onRevert(deposit)}
+                disabled={isBusy || !canRevert}
+              >
+                <Text style={[styles.btnActionText, { color: canRevert ? colors.danger : colors.muted }]}>Revertir</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   const loadPendingDeposits = async () => {
     setLoading(true);
     setError(null);
@@ -141,95 +263,18 @@ export default function AdminDepositsScreen() {
           const isEditing = editingId === deposit.id;
 
           return (
-            <View key={deposit.id} style={styles.depositCard}>
-              {/* Línea 1: ID y Cuenta */}
-              <View style={styles.cardRow}>
-                <Text style={styles.idText}>ID: ...{String(deposit.id).slice(-8).toUpperCase()}</Text>
-                <Text style={styles.accountText}>No. {deposit.accountNumber}</Text>
-              </View>
-
-              {/* Línea 2: Monto o Input de edición */}
-              <View style={styles.cardRow}>
-                {isEditing ? (
-                  <View style={styles.editInputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={editingAmount}
-                      onChangeText={setEditingAmount}
-                      autoFocus
-                    />
-                  </View>
-                ) : (
-                  <Text style={styles.amountText}>
-                    {formatMoney(deposit.amount, deposit.currencyTo || 'GTQ')}
-                  </Text>
-                )}
-
-                {/* Badge de Tiempo Restante */}
-                <View style={[styles.badge, { backgroundColor: deposit.canRevert ? colors.warningBg : colors.dangerBg }]}>
-                  <Text style={[styles.badgeText, { color: deposit.canRevert ? colors.warning : colors.danger }]}>
-                    {deposit.canRevert ? `${deposit.secondsRemaining}s` : 'Expirado'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Línea 3: Conversión de Moneda y Fecha */}
-              <View style={styles.cardRow}>
-                <Text style={styles.conversionText}>
-                  Ruta: {deposit.currencyFrom} ➔ {deposit.currencyTo}
-                </Text>
-                <Text style={styles.dateText}>{formatDate(deposit.createdAt)}</Text>
-              </View>
-
-              {/* BOTONES DE ACCIÓN */}
-              <View style={styles.actionsContainer}>
-                {isEditing ? (
-                  <>
-                    <TouchableOpacity 
-                      style={[styles.btnAction, { borderColor: colors.border }]} 
-                      onPress={handleCancelEdit}
-                      disabled={isBusy}
-                    >
-                      <Text style={[styles.btnActionText, { color: colors.text }]}>Cancelar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.btnAction, { backgroundColor: colors.primary, borderColor: colors.primary }]} 
-                      onPress={() => handleSaveEdit(deposit)}
-                      disabled={isBusy}
-                    >
-                      {isBusy ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <Text style={[styles.btnActionText, { color: '#FFF' }]}>Guardar</Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <TouchableOpacity 
-                      style={[styles.btnAction, { borderColor: colors.primary }]} 
-                      onPress={() => handleStartEdit(deposit)}
-                      disabled={isBusy}
-                    >
-                      <Text style={[styles.btnActionText, { color: colors.primary }]}>Editar monto</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.btnAction, { 
-                        borderColor: deposit.canRevert ? colors.danger : colors.border,
-                        opacity: deposit.canRevert ? 1 : 0.4 
-                      }]} 
-                      onPress={() => handleRevert(deposit)}
-                      disabled={isBusy || !deposit.canRevert}
-                    >
-                      <Text style={[styles.btnActionText, { color: deposit.canRevert ? colors.danger : colors.muted }]}>
-                        Revertir
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            </View>
+            <PendingDepositCard
+              key={deposit.id}
+              deposit={deposit}
+              isBusy={isBusy}
+              isEditing={isEditing}
+              editingAmount={editingAmount}
+              onStartEdit={handleStartEdit}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              onRevert={handleRevert}
+              onUpdateAmount={setEditingAmount}
+            />
           );
         })
       )}

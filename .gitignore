@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+.env
+.env.*
+.idea/
+**/dist/
+**/bin/
+**/obj/
+src/AuthServiceBanco.Api/keys/
+src/AuthServiceBanco.Api/logs/

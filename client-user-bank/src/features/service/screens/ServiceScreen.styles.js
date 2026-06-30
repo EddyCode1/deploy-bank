@@ -148,6 +148,10 @@ export const styles = StyleSheet.create({
   btnSubmitDisabled: {
     opacity: 0.5,
   },
+  receiptSection: {
+    marginTop: 20,
+    gap: 12,
+  },
   // Tabla / Historial alternativo para Mobile
   historyItem: {
     borderBottomWidth: 1,

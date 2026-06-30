@@ -3,8 +3,10 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* ./
 
-RUN corepack enable && pnpm install --frozen-lockfile --unsafe-perm
-    
+RUN corepack enable && \
+    corepack prepare pnpm@10.29.3 --activate && \
+    pnpm install --frozen-lockfile
+
 COPY . .
 
 EXPOSE 3000

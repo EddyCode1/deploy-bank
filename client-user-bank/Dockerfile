@@ -3,10 +3,10 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN corepack enable && \
-    pnpm config set auto-install-peers true && \
-    pnpm install --frozen-lockfile --unsafe-perm --config.ignore-scripts=false --approve-builds
+    corepack prepare pnpm@10.29.3 --activate && \
+    pnpm install --frozen-lockfile
 
 COPY . .
 
 EXPOSE 8081
-CMD ["npx", "expo", "start", "--web"]
+CMD ["npx", "expo", "start", "--web", "--host", "0.0.0.0"]

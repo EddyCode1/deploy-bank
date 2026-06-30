@@ -88,6 +88,10 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+  receiptSection: {
+    marginTop: 20,
+    gap: 12,
+  },
   pickerContainer: {
     backgroundColor: colors.card,
     borderColor: colors.border,

@@ -1,10 +1,10 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN corepack enable && \
-    pnpm config set auto-install-peers true && \
-    pnpm install --frozen-lockfile --unsafe-perm --config.ignore-scripts=false --approve-builds
+    corepack prepare pnpm@10.29.3 --activate && \
+    pnpm install --frozen-lockfile
 
 COPY . .
 

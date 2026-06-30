@@ -136,6 +136,18 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  timerBadge: {
+    backgroundColor: colors.warningBg,
+  },
+  timerBadgeText: {
+    color: colors.warning,
+  },
+  expiredBadge: {
+    backgroundColor: colors.dangerBg,
+  },
+  expiredBadgeText: {
+    color: colors.danger,
+  },
   // Modificadores de Edición Inline integrados en tarjeta
   editInputContainer: {
     flexDirection: 'row',

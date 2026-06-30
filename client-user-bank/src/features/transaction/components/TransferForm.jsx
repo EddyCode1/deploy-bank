@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import useTransactionStore from '../store/useTransactionStore';
 import { useMyAccounts } from '../../account/hooks/useMyAccounts';
 import { notifyAccountsUpdated } from '../../../shared/events/bankingEvents';
+import PaymentReceipt, { buildPaymentReceiptHtml } from '../../../shared/components/PaymentReceipt';
 import { styles, colors } from './TransferForm.styles';
 
 export default function TransferForm({ onSuccess, initialDestinationAccountId = '' }) {
@@ -17,6 +20,8 @@ export default function TransferForm({ onSuccess, initialDestinationAccountId = 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [receiptData, setReceiptData] = useState(null);
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const { createTransfer } = useTransactionStore();
 
   const {
@@ -134,6 +139,25 @@ export default function TransferForm({ onSuccess, initialDestinationAccountId = 
     }
   };
 
+  const handleDownloadReceipt = async () => {
+    if (!receiptData) return;
+    setDownloadLoading(true);
+    try {
+      const html = buildPaymentReceiptHtml(receiptData);
+      const { uri } = await Print.printToFileAsync({ html });
+      if (Platform.OS === 'ios') {
+        await Sharing.shareAsync(uri);
+      } else {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Guardar comprobante' });
+      }
+    } catch (error) {
+      console.error('Error generating receipt PDF:', error);
+      Alert.alert('Error', 'No fue posible generar el comprobante en PDF.');
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       Alert.alert('Atención', 'Por favor completa correctamente todos los campos requeridos');
@@ -151,8 +175,22 @@ export default function TransferForm({ onSuccess, initialDestinationAccountId = 
       });
 
       if (result.success) {
-        Alert.alert('Éxito', 'Transferencia realizada con éxito');
+        const receipt = {
+          transactionId: result.data?.id || result.data?._id || result.data?.transactionId || `TRX-${Date.now()}`,
+          dateTime: new Date().toISOString(),
+          operationType: 'Transferencia',
+          sourceAccount: formData.sourceAccountId.trim(),
+          destination: formData.destinationAccountId.trim(),
+          amount: parseFloat(formData.amount),
+          currency: 'GTQ',
+          status: 'COMPLETADO',
+          reference: formData.reference.trim() || undefined,
+          concept: formData.concept.trim() || undefined,
+        };
+
+        Alert.alert('Éxito', 'Transferencia realizada con éxito. Puedes descargar tu comprobante.');
         notifyAccountsUpdated();
+        setReceiptData(receipt);
         setFormData({
           sourceAccountId: '',
           destinationAccountId: '',
@@ -326,6 +364,24 @@ export default function TransferForm({ onSuccess, initialDestinationAccountId = 
             <Text style={styles.btnSubmitText}>Realizar Transferencia</Text>
           )}
         </TouchableOpacity>
+
+        {receiptData && (
+          <View style={styles.receiptSection}>
+            <TouchableOpacity
+              style={[styles.btnSubmit, downloadLoading && styles.btnSubmitDisabled]}
+              onPress={handleDownloadReceipt}
+              disabled={downloadLoading}
+            >
+              {downloadLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.btnSubmitText}>Descargar comprobante</Text>
+              )}
+            </TouchableOpacity>
+            <PaymentReceipt receipt={receiptData} />
+          </View>
+        )}
+
       </View>
     </View>
   );

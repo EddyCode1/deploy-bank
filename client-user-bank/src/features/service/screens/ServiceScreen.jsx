@@ -3,6 +3,8 @@ import {
   View, Text, ScrollView, TextInput, TouchableOpacity, 
   ActivityIndicator, Alert, Modal, Switch, Platform
 } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { Picker } from '@react-native-picker/picker';
 
 import useAuthStore from '../../auth/store/useAuthStore';
@@ -10,6 +12,7 @@ import { isAdminUser } from '../../../shared/auth/roles';
 import { bankingClient } from '../../../shared/api/adminClient';
 import { accountService } from '../../account/services/accountService';
 import PaymentHistory from '../components/PaymentHistory';
+import PaymentReceipt, { buildPaymentReceiptHtml } from '../../../shared/components/PaymentReceipt';
 import { styles, colors } from './ServiceScreen.styles';
 
 export default function ServiceScreen() {
@@ -41,6 +44,8 @@ export default function ServiceScreen() {
     reference: '',
     description: '',
   });
+  const [serviceReceipt, setServiceReceipt] = useState(null);
+  const [downloadLoadingService, setDownloadLoadingService] = useState(false);
 
   const resolveApiError = (error, fallback) => {
     return error?.response?.data?.message || error?.response?.data?.error || fallback;
@@ -148,6 +153,25 @@ export default function ServiceScreen() {
     }
   };
 
+  const handleDownloadServiceReceipt = async () => {
+    if (!serviceReceipt) return;
+    setDownloadLoadingService(true);
+    try {
+      const html = buildPaymentReceiptHtml(serviceReceipt);
+      const { uri } = await Print.printToFileAsync({ html });
+      if (Platform.OS === 'ios') {
+        await Sharing.shareAsync(uri);
+      } else {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Guardar comprobante' });
+      }
+    } catch (error) {
+      console.error('Error generating service receipt PDF:', error);
+      Alert.alert('Error', 'No fue posible generar el comprobante en PDF.');
+    } finally {
+      setDownloadLoadingService(false);
+    }
+  };
+
   const deleteService = (service) => {
     Alert.alert(
       'Confirmar eliminación',
@@ -179,7 +203,7 @@ export default function ServiceScreen() {
 
     setSubmitting(true);
     try {
-      await bankingClient.post('/services/payments', {
+      const result = await bankingClient.post('/services/payments', {
         serviceId: form.serviceId,
         accountId: form.accountId,
         amount: Number(form.amount),
@@ -187,7 +211,20 @@ export default function ServiceScreen() {
         reference: form.reference || undefined,
         description: form.description || undefined,
       });
-      Alert.alert('Éxito', 'Pago de servicio realizado correctamente');
+      Alert.alert('Éxito', 'Pago de servicio realizado correctamente. Puedes descargar tu comprobante.');
+      const receipt = {
+        transactionId: result.data?.id || result.data?._id || result.data?.paymentId || `PAY-${Date.now()}`,
+        dateTime: new Date().toISOString(),
+        operationType: 'Pago de servicio',
+        sourceAccount: accounts.find((account) => account.id === form.accountId)?.accountNumber || form.accountId,
+        destination: selectedService?.name || 'Pago de servicio',
+        amount: Number(form.amount),
+        currency: form.currency,
+        status: 'COMPLETADO',
+        reference: form.reference || undefined,
+        description: form.description || undefined,
+      };
+      setServiceReceipt(receipt);
       setForm({ serviceId: '', accountId: '', amount: '', currency: 'GTQ', reference: '', description: '' });
       await loadData();
     } catch (error) {
@@ -346,6 +383,24 @@ export default function ServiceScreen() {
                   {submitting ? 'Procesando pago...' : `Pagar ${selectedService?.name || 'servicio'}`}
                 </Text>
               </TouchableOpacity>
+
+              {serviceReceipt && (
+                <View style={styles.receiptSection}>
+                  <TouchableOpacity
+                    style={[styles.btnSubmit, downloadLoadingService && styles.btnSubmitDisabled]}
+                    onPress={handleDownloadServiceReceipt}
+                    disabled={downloadLoadingService}
+                  >
+                    {downloadLoadingService ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.btnText}>Descargar comprobante</Text>
+                    )}
+                  </TouchableOpacity>
+                  <PaymentReceipt receipt={serviceReceipt} />
+                </View>
+              )}
+
             </View>
           </View>
 
