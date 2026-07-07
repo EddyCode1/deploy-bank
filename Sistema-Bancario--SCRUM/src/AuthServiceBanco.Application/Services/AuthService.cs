@@ -132,6 +132,23 @@ public class AuthService(
             }
         });
 
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await emailService.SendAdminNotificationAsync(
+                    createdUser.Email,
+                    createdUser.Username,
+                    createdUser.Name,
+                    createdUser.Surname);
+                logger.LogInformation("Admin notification email sent");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to send admin notification email");
+            }
+        });
+
         // Crear respuesta sin JWT - solo confirmación de registro
         return new RegisterResponseDto
         {

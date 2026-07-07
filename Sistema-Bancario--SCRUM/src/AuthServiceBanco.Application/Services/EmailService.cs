@@ -65,6 +65,33 @@ public class EmailService(IConfiguration configuration, ILogger<EmailService> lo
         await SendEmailAsync(email, subject, body);
     }
 
+    public async Task SendAdminNotificationAsync(string userEmail, string username, string name, string surname)
+    {
+        var adminEmail = configuration["AppSettings:AdminEmail"]
+            ?? configuration["AdminEmail"]
+            ?? configuration["SmtpSettings:FromEmail"];
+
+        if (string.IsNullOrWhiteSpace(adminEmail))
+        {
+            logger.LogWarning("No admin email configured for notification");
+            return;
+        }
+
+        var subject = "Nuevo registro pendiente de aprobación";
+        var fullName = string.IsNullOrWhiteSpace(name) ? username : $"{name} {surname}".Trim();
+
+        var body = $@"
+            <h2>Nuevo registro pendiente</h2>
+            <p>Se ha registrado un nuevo usuario en la plataforma.</p>
+            <p><strong>Usuario:</strong> {username}</p>
+            <p><strong>Nombre:</strong> {fullName}</p>
+            <p><strong>Email:</strong> {userEmail}</p>
+            <p>Por favor, revise y active la cuenta desde el panel de administración.</p>
+        ";
+
+        await SendEmailAsync(adminEmail, subject, body);
+    }
+
     private async Task SendEmailAsync(string to, string subject, string body)
     {
         var smtpSettings = configuration.GetSection("SmtpSettings");
