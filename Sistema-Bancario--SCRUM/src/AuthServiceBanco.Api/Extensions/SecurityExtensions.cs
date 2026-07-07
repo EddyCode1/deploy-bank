@@ -154,7 +154,9 @@ public static class SecurityExtensions
 
         foreach (var key in additionalKeys)
         {
-            var value = configuration[key];
+            // Prefer environment variables first (Render sets plain env vars)
+            var envValue = Environment.GetEnvironmentVariable(key);
+            var value = !string.IsNullOrWhiteSpace(envValue) ? envValue : configuration[key];
             if (string.IsNullOrWhiteSpace(value))
             {
                 continue;
