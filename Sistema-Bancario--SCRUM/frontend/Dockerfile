@@ -8,9 +8,9 @@ RUN corepack enable && \
 
 COPY . .
 
-ARG VITE_API_AUTH_URL=http://localhost:5025/api/v1
+ARG VITE_AUTH_URL=http://localhost:5025/api/v1/Auth
 ARG VITE_API_BANKING_URL=http://localhost:3000/SistemaBancarioAdmin/v1
-ENV VITE_API_AUTH_URL=$VITE_API_AUTH_URL
+ENV VITE_AUTH_URL=$VITE_AUTH_URL
 ENV VITE_API_BANKING_URL=$VITE_API_BANKING_URL
 
 RUN pnpm run build

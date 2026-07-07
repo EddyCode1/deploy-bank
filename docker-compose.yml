@@ -26,9 +26,9 @@ services:
     environment:
       PORT: "3000"
       # AQUÍ DEBES PONER TU CADENA DE MONGO ATLAS (la que ya tienes)
-      URI_MONGO: "mongodb+srv://..." 
+      URI_MONGO: "mongodb+srv://..."
       JWT_SECRET: "MyVerySecretKeyForJWTTokenAuthenticationWith256Bits!"
-      # ... resto de variables
+      AUTH_SERVICE_URL: http://dotnet-api:5025/api/v1
     ports:
       - "3000:3000"
     networks:

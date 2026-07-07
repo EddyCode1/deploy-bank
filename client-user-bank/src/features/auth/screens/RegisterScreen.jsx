@@ -41,9 +41,11 @@ const RegisterScreen = ({ navigation }) => {
                 "Tu cuenta ha sido creada. Revisa tu correo y espera activación administrativa.",
                 [{ text: "OK", onPress: () => navigation.navigate("Login") }],
             );
-        } catch (error) {
+        } catch (registerError) {
             const message =
-                error.response?.data?.message || "Error al registrarse";
+                registerError.message ||
+                registerError.response?.data?.message ||
+                "Error al registrarse";
             Alert.alert("Error", message);
         }
     };

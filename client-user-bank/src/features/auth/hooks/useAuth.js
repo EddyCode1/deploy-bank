@@ -20,6 +20,42 @@ function mapUserForStore(userDetails = {}) {
     };
 }
 
+function resolveAuthErrorMessage(err, fallback = "Error de autenticación") {
+    const apiErrors = err.response?.data?.errors;
+    const validationMessages =
+        apiErrors && typeof apiErrors === "object"
+            ? Object.values(apiErrors).flat().filter(Boolean)
+            : [];
+
+    const raw =
+        validationMessages[0] ||
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        err.response?.data?.title ||
+        err.message ||
+        fallback;
+
+    const normalized = String(raw).toLowerCase();
+    if (
+        normalized.includes("cuenta pendiente de activación") ||
+        normalized.includes("cuenta pendiente de activacion") ||
+        normalized.includes("account pending")
+    ) {
+        return "Tu cuenta aún no ha sido activada por un administrador. Espera la aprobación e intenta de nuevo.";
+    }
+    if (normalized.includes("email not verified") || normalized.includes("email no verificado")) {
+        return "Tu correo aún no está verificado. Revisa tu bandeja y confirma tu cuenta.";
+    }
+    if (
+        normalized.includes("invalid credentials") ||
+        normalized.includes("credenciales inválidas") ||
+        normalized.includes("credenciales invalidas")
+    ) {
+        return "Credenciales incorrectas. Verifica tu usuario/email y contraseña.";
+    }
+    return raw || fallback;
+}
+
 export const useAuth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -38,9 +74,7 @@ export const useAuth = () => {
                 username: data.emailOrUsername?.includes("@") ? undefined : data.emailOrUsername,
             };
 
-            console.log("Login payload:", payload);
             const response = await authClient.post("/login", payload);
-            console.log("Login response:", response.data);
 
             const { accessToken, refreshToken, userDetails, token, user } =
                 response.data;
@@ -51,18 +85,7 @@ export const useAuth = () => {
             await login(mappedAccessToken, mappedUser, refreshToken);
             return response.data;
         } catch (err) {
-            const message =
-                err.response?.data?.message ||
-                err.response?.data?.title ||
-                err.response?.statusText ||
-                err.message ||
-                "Error al iniciar sesión";
-            console.error("Login error details:", {
-                message,
-                status: err.response?.status,
-                data: err.response?.data,
-                request: err.config,
-            });
+            const message = resolveAuthErrorMessage(err, "Error al iniciar sesión");
             setError(message);
             throw new Error(message);
         } finally {
@@ -87,8 +110,9 @@ export const useAuth = () => {
             const response = await authClient.post("/register", payload);
             return response.data;
         } catch (err) {
-            setError(err.response?.data?.message || "Error al registrarse");
-            throw err;
+            const message = resolveAuthErrorMessage(err, "Error al registrarse");
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
