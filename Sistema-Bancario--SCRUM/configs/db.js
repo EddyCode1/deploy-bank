@@ -13,7 +13,8 @@ export const dbConnection = async () => {
     // maxPoolSize: número máximo de conexiones simultáneas en el pool (10)
     await mongoose.connect(process.env.URI_MONGO, {
       serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 10
+      maxPoolSize: 10,
+      family: 4
     });
 
     console.log('MongoDB | conectado a mongoDB');

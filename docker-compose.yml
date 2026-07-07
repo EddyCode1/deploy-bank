@@ -1,60 +1,17 @@
 version: "3.8"
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: authserviceBanco_postgres
-    restart: always
-    environment:
-      POSTGRES_DB: SistemaBancario
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: admin
-    ports:
-      - "5440:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d SistemaBancario"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  mongodb:
-    image: mongo:7
-    container_name: sistemaBancario_mongodb
-    restart: always
-    environment:
-      MONGO_INITDB_DATABASE: SistemaBancario
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - app-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   dotnet-api:
     build:
       context: ./Sistema-Bancario--SCRUM
       dockerfile: src/AuthServiceBanco.Api/Dockerfile
     container_name: authservice_dotnet
     restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:5025
-      # Development permite CORS desde cualquier localhost (p. ej. Expo en :8081)
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=SistemaBancario;Username=root;Password=admin"
+      # AQUÍ DEBES PONER TU CADENA DE CONEXIÓN DE NEON
+      ConnectionStrings__DefaultConnection: "TU_CADENA_DE_NEON_AQUI"
     ports:
       - "5025:5025"
     networks:
@@ -66,66 +23,19 @@ services:
       dockerfile: Dockerfile
     container_name: authservice_node
     restart: always
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      dotnet-api:
-        condition: service_started
     environment:
       PORT: "3000"
-      URI_MONGO: mongodb://mongodb:27017/SistemaBancario
+      # AQUÍ DEBES PONER TU CADENA DE MONGO ATLAS (la que ya tienes)
+      URI_MONGO: "mongodb+srv://..." 
       JWT_SECRET: "MyVerySecretKeyForJWTTokenAuthenticationWith256Bits!"
-      JWT_ISSUER: AuthService
-      JWT_AUDIENCE: AuthService
-      JWT_EXPIRES_IN: 30m
-      AUTH_SERVICE_URL: http://dotnet-api:5025/api/v1
-      CLOUDINARY_CLOUD_NAME: df4mso9fj
-      CLOUDINARY_API_KEY: 874282764416343
-      CLOUDINARY_API_SECRET: Y01R9EtChbLm9kPVy8Kq8zAWQf8
-      CLOUDINARY_FOLDER: kinalsports/fields
+      # ... resto de variables
     ports:
       - "3000:3000"
     networks:
       - app-network
 
-  frontend:
-    build:
-      context: ./Sistema-Bancario--SCRUM/frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_AUTH_URL: http://localhost:5025/api/v1
-        VITE_API_BANKING_URL: http://localhost:3000/SistemaBancarioAdmin/v1
-    container_name: authservice_frontend
-    restart: always
-    depends_on:
-      - node-api
-      - dotnet-api
-    ports:
-      - "5173:80"
-    networks:
-      - app-network
-
-  mobile-app:
-    build:
-      context: ./client-user-bank
-      dockerfile: Dockerfile
-    container_name: client_user_bank
-    restart: unless-stopped
-    depends_on:
-      - node-api
-      - dotnet-api
-    ports:
-      - "8081:8081"
-    environment:
-      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
-    networks:
-      - app-network
-    stdin_open: true
-    tty: true
-
-volumes:
-  postgres_data:
-  mongo_data:
+# NOTA: YA NO SE DEFINEN LOS SERVICIOS 'mongodb' NI 'postgres' AQUÍ
+# PORQUE AHORA ESTÁN EN LA NUBE.
 
 networks:
   app-network:

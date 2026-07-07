@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using System.Text.RegularExpressions;
 
 namespace AuthServiceBanco.Api.Extensions;
 
@@ -28,6 +29,9 @@ public static class SecurityExtensions
                         ?? "Development";
         var isDevelopment = string.Equals(aspNetEnv, "Development", StringComparison.OrdinalIgnoreCase);
 
+        var allowedOrigins = GetConfiguredOrigins(configuration, "Security:AllowedOrigins", DefaultAllowedOrigins, "FRONTEND_URL", "VERCEL_URL", "CORS_ALLOWED_ORIGINS");
+        var adminOrigins = GetConfiguredOrigins(configuration, "Security:AdminAllowedOrigins", DefaultAdminOrigins, "FRONTEND_URL", "VERCEL_URL", "CORS_ALLOWED_ORIGINS");
+
         // Configurar CORS
         services.AddCors(options =>
         {
@@ -50,28 +54,31 @@ public static class SecurityExtensions
                 }
                 else
                 {
-                    // En producción: lista explícita desde configuración
-                    var allowedOrigins = configuration.GetSection("Security:AllowedOrigins").Get<string[]>()
-                        ?? DefaultAllowedOrigins;
-
-                    builder.WithOrigins(allowedOrigins)
-                           .AllowAnyHeader()
-                           .WithMethods(AllowedHttpMethods)
-                           .AllowCredentials()
-                           .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
+                    builder.SetIsOriginAllowed(origin =>
+                        {
+                            if (string.IsNullOrWhiteSpace(origin)) return false;
+                            if (!Uri.TryCreate(origin, UriKind.Absolute, out _)) return false;
+                            return allowedOrigins.Any(allowedOrigin => MatchesOrigin(allowedOrigin, origin));
+                        })
+                        .AllowAnyHeader()
+                        .WithMethods(AllowedHttpMethods)
+                        .AllowCredentials()
+                        .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
                 }
             });
 
             // Política restrictiva para endpoints administrativos
             options.AddPolicy("AdminCorsPolicy", builder =>
             {
-                var adminOrigins = configuration.GetSection("Security:AdminAllowedOrigins").Get<string[]>()
-                    ?? DefaultAdminOrigins;
-
-                builder.WithOrigins(adminOrigins)
-                       .WithHeaders(AdminAllowedHeaders)
-                       .WithMethods(AdminHttpMethods)
-                       .AllowCredentials();
+                builder.SetIsOriginAllowed(origin =>
+                    {
+                        if (string.IsNullOrWhiteSpace(origin)) return false;
+                        if (!Uri.TryCreate(origin, UriKind.Absolute, out _)) return false;
+                        return adminOrigins.Any(allowedOrigin => MatchesOrigin(allowedOrigin, origin));
+                    })
+                    .WithHeaders(AdminAllowedHeaders)
+                    .WithMethods(AdminHttpMethods)
+                    .AllowCredentials();
             });
         });
 
@@ -134,6 +141,57 @@ public static class SecurityExtensions
         });
 
         return services;
+    }
+
+    private static string[] GetConfiguredOrigins(IConfiguration configuration, string sectionName, string[] defaultOrigins, params string[] additionalKeys)
+    {
+        var origins = new List<string>(defaultOrigins);
+
+        if (configuration.GetSection(sectionName).Get<string[]>() is { Length: > 0 } configuredOrigins)
+        {
+            origins.AddRange(configuredOrigins);
+        }
+
+        foreach (var key in additionalKeys)
+        {
+            var value = configuration[key];
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            foreach (var origin in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!string.IsNullOrWhiteSpace(origin))
+                {
+                    origins.Add(origin);
+                }
+            }
+        }
+
+        return origins.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static bool MatchesOrigin(string allowedOrigin, string requestOrigin)
+    {
+        if (string.IsNullOrWhiteSpace(allowedOrigin) || string.IsNullOrWhiteSpace(requestOrigin))
+        {
+            return false;
+        }
+
+        if (allowedOrigin.Contains('*'))
+        {
+            var regexPattern = Regex.Escape(allowedOrigin).Replace(@"\*", ".*");
+            return Regex.IsMatch(requestOrigin, $"^{regexPattern}$", RegexOptions.IgnoreCase);
+        }
+
+        if (!allowedOrigin.Contains("://", StringComparison.Ordinal))
+        {
+            return requestOrigin.Equals(allowedOrigin, StringComparison.OrdinalIgnoreCase)
+                || requestOrigin.EndsWith($".{allowedOrigin}", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return requestOrigin.Equals(allowedOrigin, StringComparison.OrdinalIgnoreCase);
     }
 }
 

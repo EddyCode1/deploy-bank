@@ -399,7 +399,10 @@ async function main() {
     process.exit(1);
   }
   console.log('Conectando a MongoDB…');
-  await mongoose.connect(process.env.URI_MONGO);
+  await mongoose.connect(process.env.URI_MONGO, {
+    family: 4,
+    });
+    
   try {
     await clearSeedArtifacts();
     const accounts = await createAccounts();

@@ -9,6 +9,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace AuthServiceBanco.Api.Extensions;
 
@@ -16,8 +17,21 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? configuration["ConnectionStrings__DefaultConnection"]
+            ?? configuration["DATABASE_URL"]
+            ?? configuration["POSTGRES_URL"]
+            ?? configuration["POSTGRESQL_URL"];
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("No database connection string configured. Set ConnectionStrings__DefaultConnection, DATABASE_URL, POSTGRES_URL or POSTGRESQL_URL.");
+        }
+
+        var effectiveConnectionString = BuildConnectionString(connectionString);
+
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
+            options.UseNpgsql(effectiveConnectionString)
                 .UseSnakeCaseNamingConvention());
         
         services.AddScoped<IUserRepository, UserRepository>();
@@ -46,5 +60,35 @@ public static class ServiceCollectionExtensions
         services.AddSwaggerGen();
 
         return services;
+    }
+
+    private static string BuildConnectionString(string connectionString)
+    {
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == "postgres" || uri.Scheme == "postgresql"))
+        {
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Host = uri.Host,
+                Port = uri.IsDefaultPort ? 5432 : uri.Port,
+                Database = uri.AbsolutePath.Trim('/'),
+                SslMode = SslMode.Require,
+                TrustServerCertificate = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(uri.UserInfo))
+            {
+                var userInfo = uri.UserInfo.Split(':', 2);
+                builder.Username = Uri.UnescapeDataString(userInfo[0]);
+                if (userInfo.Length > 1)
+                {
+                    builder.Password = Uri.UnescapeDataString(userInfo[1]);
+                }
+            }
+
+            return builder.ConnectionString;
+        }
+
+        return connectionString;
     }
 }

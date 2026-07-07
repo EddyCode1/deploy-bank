@@ -25,7 +25,57 @@ using FluentValidation.AspNetCore;
 // Esto evita que .NET convierta "sub" a "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-// Crea el builder de la aplicación web
+string? FindEnvFilePath()
+{
+    var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+    while (currentDirectory != null)
+    {
+        var envFile = Path.Combine(currentDirectory.FullName, ".env");
+        if (File.Exists(envFile))
+        {
+            return envFile;
+        }
+
+        currentDirectory = currentDirectory.Parent;
+    }
+
+    return null;
+}
+
+void LoadEnvFileIfPresent()
+{
+    var envFilePath = FindEnvFilePath();
+    if (string.IsNullOrWhiteSpace(envFilePath))
+    {
+        return;
+    }
+
+    foreach (var line in File.ReadLines(envFilePath))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#"))
+        {
+            continue;
+        }
+
+        var separatorIndex = trimmed.IndexOf('=');
+        if (separatorIndex <= 0)
+        {
+            continue;
+        }
+
+        var key = trimmed[..separatorIndex].Trim();
+        var value = trimmed[(separatorIndex + 1)..].Trim().Trim('"').Trim('\'');
+        if (!string.IsNullOrWhiteSpace(key))
+        {
+            Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+}
+
+LoadEnvFileIfPresent();
+
 // Crea el builder de la aplicación web
 var builder = WebApplication.CreateBuilder(args);
 
