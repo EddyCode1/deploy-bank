@@ -18,14 +18,25 @@ export function getApiBaseUrl(port, pathPrefix = "") {
     return `http://${getHost()}:${port}${pathPrefix}`;
 }
 
+function normalizeAuthBaseUrl(value, fallback) {
+    const rawValue = value || fallback;
+    if (!rawValue) return rawValue;
+
+    const trimmed = rawValue.replace(/\/+$/, "");
+    if (trimmed.endsWith("/auth")) return trimmed;
+    if (trimmed.endsWith("/api/v1")) return `${trimmed}/auth`;
+    return trimmed;
+}
+
 export const ENDPOINTS = {
-    AUTH:
-        process.env.EXPO_PUBLIC_AUTH_URL ||
+    AUTH: normalizeAuthBaseUrl(
+        process.env.EXPO_PUBLIC_AUTH_URL || process.env.EXPO_PUBLIC_API_AUTH_URL,
         getApiBaseUrl(5025, "/api/v1/Auth"),
+    ),
     API:
-        process.env.EXPO_PUBLIC_API_BASE ||
+        process.env.EXPO_PUBLIC_API_BASE || process.env.EXPO_PUBLIC_API_ADMIN_URL ||
         getApiBaseUrl(5025, "/api/v1"),
     BANKING:
-        process.env.EXPO_PUBLIC_BANKING_API_BASE ||
+        process.env.EXPO_PUBLIC_BANKING_API_BASE || process.env.EXPO_PUBLIC_API_BANKING_URL ||
         getApiBaseUrl(3000, "/SistemaBancarioAdmin/v1"),
 };
