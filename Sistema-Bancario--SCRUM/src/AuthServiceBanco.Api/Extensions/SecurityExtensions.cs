@@ -40,10 +40,11 @@ public static class SecurityExtensions
                 if (isDevelopment)
                 {
                     // En desarrollo: permitir cualquier origen localhost / 127.0.0.1 (cualquier puerto)
+                    // También acepta null/empty para peticiones desde APK móvil (no envían Origin)
                     // Nota: con AllowCredentials no se puede usar AllowAnyOrigin, por eso usamos SetIsOriginAllowed
                     builder.SetIsOriginAllowed(origin =>
                         {
-                            if (string.IsNullOrWhiteSpace(origin)) return false;
+                            if (string.IsNullOrWhiteSpace(origin)) return true;
                             if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
                             return uri.Host == "localhost" || uri.Host == "127.0.0.1";
                         })
@@ -56,7 +57,7 @@ public static class SecurityExtensions
                 {
                     builder.SetIsOriginAllowed(origin =>
                         {
-                            if (string.IsNullOrWhiteSpace(origin)) return false;
+                            if (string.IsNullOrWhiteSpace(origin)) return true;
                             if (!Uri.TryCreate(origin, UriKind.Absolute, out _)) return false;
                             return allowedOrigins.Any(allowedOrigin => MatchesOrigin(allowedOrigin, origin));
                         })

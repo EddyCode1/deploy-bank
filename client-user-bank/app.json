@@ -29,10 +29,27 @@
     "plugins": [
       "expo-secure-store",
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "https://maven.google.com",
+              "https://jitpack.io"
+            ]
+          }
+        }
+      ],
+      "expo-font"
     ],
     "experiments": {
       "tsconfigPaths": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2d07b282-7452-4f75-9a21-c642d2144bf3"
+      }
     }
   }
 }

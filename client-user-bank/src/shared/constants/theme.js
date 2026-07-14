@@ -31,6 +31,18 @@ export const FONT_SIZE = {
     huge: 32,
 };
 
+export const RADIUS = {
+    sm: 6,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    round: 999,
+};
+
+export const GRADIENTS = {
+    primary: ["#00ADB5", "#00858C"],
+};
+
 export const SHADOWS = {
     sm: {
         shadowColor: "#000",
