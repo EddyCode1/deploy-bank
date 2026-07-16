@@ -8,6 +8,7 @@ import { useAuthStore } from '../../../shared/store/authStore';
 import { isAdminUser } from '../../../shared/auth/roles';
 import { useMyAccounts } from '../hooks/useMyAccounts';
 import { accountService } from '../services/accountService';
+import { getUsers } from '../../user/service/userService';
 import AccountDetailModal from '../components/AccountDetailModal';
 import AccountFormModal from '../components/AccountFormModal';
 import { notifyAccountsUpdated } from '../../../shared/events/bankingEvents';
@@ -72,6 +73,7 @@ export default function AccountScreen() {
   const [txLoading, setTxLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [owners, setOwners] = useState([]);
 
   const openDetail = async (account) => {
     setSelectedAccount(account);
@@ -79,6 +81,21 @@ export default function AccountScreen() {
     const result = await accountService.getAccountTransactions(account.id);
     setSelectedTx(result.success ? result.data.transactions : []);
     setTxLoading(false);
+  };
+
+  const fetchOwners = async () => {
+    const result = await getUsers({ page: 1, limit: 200 });
+    if (result.success) {
+      setOwners(result.data.items || []);
+    }
+  };
+
+  const handleOpenCreate = async () => {
+    setEditingAccount(null);
+    if (isAdmin) {
+      await fetchOwners();
+    }
+    setFormOpen(true);
   };
 
   const handleEdit = (account) => {
@@ -134,7 +151,7 @@ export default function AccountScreen() {
           </View>
           <TouchableOpacity
             style={styles.btnNew}
-            onPress={() => { setEditingAccount(null); setFormOpen(true); }}
+            onPress={handleOpenCreate}
           >
             <MaterialIcons name="add" size={18} color="#FFF" />
             <Text style={styles.btnNewText}>Nueva</Text>
@@ -148,7 +165,7 @@ export default function AccountScreen() {
             <Text style={styles.emptyText}>No tienes cuentas registradas aún.</Text>
             <TouchableOpacity
               style={[styles.btnNew, { marginTop: 12 }]}
-              onPress={() => { setEditingAccount(null); setFormOpen(true); }}
+              onPress={handleOpenCreate}
             >
               <Text style={styles.btnNewText}>Solicitar cuenta</Text>
             </TouchableOpacity>
@@ -178,6 +195,7 @@ export default function AccountScreen() {
         onClose={() => { setFormOpen(false); setEditingAccount(null); }}
         account={editingAccount}
         isAdmin={isAdmin}
+        users={owners}
         onSave={handleSaveAccount}
       />
     </View>

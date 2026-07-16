@@ -67,11 +67,13 @@ export const useAuth = () => {
             setLoading(true);
             setError(null);
 
+            const emailOrUsername = (data.emailOrUsername || '').trim();
+
             const payload = {
                 password: data.password,
-                emailOrUsername: data.emailOrUsername,
-                email: data.emailOrUsername?.includes("@") ? data.emailOrUsername : undefined,
-                username: data.emailOrUsername?.includes("@") ? undefined : data.emailOrUsername,
+                emailOrUsername,
+                email: emailOrUsername.includes("@") ? emailOrUsername : undefined,
+                username: emailOrUsername.includes("@") ? undefined : emailOrUsername,
             };
 
             const response = await authClient.post("/login", payload);

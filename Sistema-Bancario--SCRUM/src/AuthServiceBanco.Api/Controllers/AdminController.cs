@@ -73,6 +73,20 @@ public class AdminController(
         return Ok(new { success = true, data = result });
     }
 
+    [HttpGet("users/{userId}/exists")]
+    public async Task<IActionResult> UserExists(string userId)
+    {
+        try
+        {
+            var user = await adminService.GetUserByIdAsync(userId);
+            return Ok(new { exists = user != null });
+        }
+        catch
+        {
+            return Ok(new { exists = false });
+        }
+    }
+
     [HttpPut("users/{userId}")]
     public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDto dto)
     {

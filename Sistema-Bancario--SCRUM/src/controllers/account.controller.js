@@ -787,7 +787,7 @@ export const getMyInfo = async (req, res) => {
     let userInfo = null;
     try {
       const response = await axios.get(
-        `${process.env.AUTH_SERVICE_URL}/users/me`,
+        `${process.env.AUTH_SERVICE_URL}/Auth/profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       userInfo = response.data?.data || response.data;

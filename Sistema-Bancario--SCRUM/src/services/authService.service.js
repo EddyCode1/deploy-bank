@@ -7,10 +7,11 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:5025/
 console.log(' AUTH_SERVICE_URL configurada:', AUTH_SERVICE_URL);
 
 // Servicio para comunicarse con .NET Auth API y verificar que un usuario existe
-export const verifyUserExists = async (userId) => {
+export const verifyUserExists = async (userId, token) => {
   try {
     // Llama al endpoint de .NET para verificar existencia del usuario
-    const response = await axios.get(`${AUTH_SERVICE_URL}/users/${userId}/exists`);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await axios.get(`${AUTH_SERVICE_URL}/users/${userId}/exists`, { headers });
     return response.data.exists; // Retorna true o false
   } catch (error) {
     console.error('Error verificando usuario:', error.message);

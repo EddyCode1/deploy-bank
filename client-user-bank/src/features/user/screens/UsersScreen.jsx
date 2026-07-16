@@ -255,7 +255,7 @@ export default function UsersScreen() {
       {/* Header Fijo */}
       <View style={styles.headerContainer}>
         <View>
-          <h1 style={styles.screenTitle}>Usuarios</h1>
+          <Text style={styles.screenTitle}>Usuarios</Text>
           <Text style={styles.screenSubtitle}>Gestión y visualización del sistema</Text>
         </View>
         <TouchableOpacity style={styles.createButton} onPress={handleCreateUser}>

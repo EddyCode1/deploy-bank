@@ -105,7 +105,20 @@ export default function MainTabs() {
             <Tab.Screen
                 name="More"
                 component={MoreStackNavigator}
-                options={{ title: "Más", headerShown: false }}
+                options={{
+                    title: "Más",
+                    headerShown: false,
+                }}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        const state = navigation.getState();
+                        const moreRoute = state?.routes?.find(r => r.name === 'More');
+                        if (moreRoute?.state?.index > 0) {
+                            e.preventDefault();
+                            navigation.navigate('More', { screen: 'MoreMenu' });
+                        }
+                    },
+                })}
             />
         </Tab.Navigator>
     );
